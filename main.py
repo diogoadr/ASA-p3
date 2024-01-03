@@ -1,30 +1,79 @@
-from pulp import *
+import pulp
 
-# Criação do problema de maximização
-prob = LpProblem("Maximize_Profit", LpMaximize)
+# Define Variable
+# t - number of toys
+# p - number of packs
+# max - max capacity of production
+t, p, max = map(int, input("").split())
 
-# Variáveis de decisão
-# Exemplo: x1, x2, ..., xn representam a quantidade de cada brinquedo
-x = [LpVariable(f"x{i}", lowBound=0, cat=LpInteger) for i in range(1, n+1)]
+totalToys = t+p
 
-# Função objetivo
-prob += lpSum([profit[i-1] * x[i-1] for i in range(1, n+1)])
+#all variables corresponding to the toys
+x = [0]*(totalToys)
+#capacity
+c = [0]*(totalToys)
+#profit
+l = [0]*(totalToys)
 
-# Restrições de capacidade de produção para cada brinquedo
-for i in range(1, n+1):
-    prob += x[i-1] <= capacity[i-1]
+# Define Variables
+variables = pulp.LpVariable.dicts("x", range(totalToys), lowBound=0, cat="Integer")
 
-# Restrições de capacidade de produção total
-prob += lpSum(x) <= max_total_capacity
+#create and define all the toys and packs
+for i in range(totalToys):
+    
+    if i <= t-1:
+        l[i], c[i] = map(int, input("").split())
+        
+    else:
+        t1, t2, t3, l[i] = map(int, input("").split())
+        c[i] = min(c[t1-1], c[t2-1], c[t3-1]) # corrected index is x-1
+        
+    #objective += l[i]*x[i] maximize the profit with the quantities of each toy (pack counts as a toy)
 
-# Restrições para pacotes especiais
-# Exemplo: 3x1 + 5x2 + 2x3 <= 130 (para o pacote especial {1, 2, 3})
-for i in range(p):
-    indices = [products_in_bundle[i][j] for j in range(3)]
-    prob += lpSum([x[index-1] for index in indices]) <= bundle_profit[i]
+#Objetive Function
+max_profit = pulp.LpProblem('max_profit', pulp.LpMaximize)
+    
+# max_profit += profit*xi + ... + profit*xt 
+max_profit += pulp.lpSum([l[i] * variables[i] for i in range(totalToys)])
 
-# Resolução do problema
-prob.solve()
+#Constraints
+# xi <= ci  
+for i in range(totalToys):
+    max_profit += variables[i] <= c[i]
 
-# Exibição da solução
-print("Lucro máximo diário:", value(prob.objective))
+# sumxi <= max
+max_profit += pulp.lpSum([variables[i] for i in range(totalToys)]) <= max
+
+
+#explore the ideia of the bundle being another toy with the profit 
+#given and the capacity of the min of the products in the bundle
+
+#preview
+# print(max_profit)
+solver = pulp.LpSolver_CMD(msg=False)
+max_profit.solve()
+
+#Solve
+print(int(pulp.value(max_profit.objective)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Create decision variables dynamically
+# variables = LpVariable.dicts("x", range(len(coefficients)), lowBound=0, cat="Integer")
+
+# # Add objective function
+# prob += lpSum([coefficients[i] * variables[i] for i in range(len(coefficients))])
+
+# # Add constraints
+# for constraint in constraints:
+#     prob += lpSum([constraint[i] * variables[i] for i in range(len(coefficients))]) <= constraint[-1]

@@ -41,7 +41,7 @@ max_profit += X + Y - 50
 max_profit += 50*X + 24*Y <= 40*60 
 max_profit += 30*X + 33*Y <= 35*60 
 max_profit += X >= 75 - 30
-max_profit += X >= 95 - 90
+max_profit += Y >= 95 - 90
 
 #Solve
 max_profit.solve()
