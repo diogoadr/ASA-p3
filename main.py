@@ -1,79 +1,65 @@
 import pulp
+import sys
 
-# Define Variable
-# t - number of toys
-# p - number of packs
-# max - max capacity of production
-t, p, max = map(int, input("").split())
+# Define Variáveis
+input_lines = sys.stdin.readlines()
+toys, packs, max_production = list(map(int, input_lines[0].split()))
 
-totalToys = t+p
+totalToys = toys + packs
+objective = 0
+all_toys = 0
 
-#all variables corresponding to the toys
-x = [0]*(totalToys)
-#capacity
-c = [0]*(totalToys)
-#profit
-l = [0]*(totalToys)
+profit = [0] * totalToys
+variables = [0] * totalToys
+max_capacity = [0] * toys
+capacity = [0] * toys
 
-# Define Variables
-variables = pulp.LpVariable.dicts("x", range(totalToys), lowBound=0, cat="Integer")
-
-#create and define all the toys and packs
-for i in range(totalToys):
-    
-    if i <= t-1:
-        l[i], c[i] = map(int, input("").split())
-        
-    else:
-        t1, t2, t3, l[i] = map(int, input("").split())
-        c[i] = min(c[t1-1], c[t2-1], c[t3-1]) # corrected index is x-1
-        
-    #objective += l[i]*x[i] maximize the profit with the quantities of each toy (pack counts as a toy)
-
-#Objetive Function
+# Função Objetivo
 max_profit = pulp.LpProblem('max_profit', pulp.LpMaximize)
-    
-# max_profit += profit*xi + ... + profit*xt 
-max_profit += pulp.lpSum([l[i] * variables[i] for i in range(totalToys)])
 
-#Constraints
-# xi <= ci  
-for i in range(totalToys):
-    max_profit += variables[i] <= c[i]
+# Define Variáveis
+toy_lines = input_lines[1:]
 
-# sumxi <= max
-max_profit += pulp.lpSum([variables[i] for i in range(totalToys)]) <= max
+# Cria e define todos os brinquedos e pacotes
+for toy in range(totalToys):
+    line = toy_lines[toy]
 
+    if toy < toys:
+        profit[toy], capacity[toy] = list(map(int, line.split()))
+        variables[toy] = pulp.LpVariable(f"t{toy}", lowBound=0, upBound=capacity[toy], cat="Integer")
+        
+        all_toys += variables[toy]
+        
+        max_capacity[toy] += variables[toy]
 
-#explore the ideia of the bundle being another toy with the profit 
-#given and the capacity of the min of the products in the bundle
+    else:
+        toy1, toy2, toy3, profit[toy] = list(map(int, line.split()))
 
-#preview
-# print(max_profit)
-solver = pulp.LpSolver_CMD(msg=False)
-max_profit.solve()
+        variables[toy] = pulp.LpVariable(f"p{toy}", lowBound=0, cat="Integer")
+        
+        max_capacity[toy1-1] += variables[toy]
+        max_capacity[toy2-1] += variables[toy]
+        max_capacity[toy3-1] += variables[toy]
+        
+        all_toys += 3*variables[toy]
+        
+    # Função Objetivo
+    objective += variables[toy] * profit[toy] 
 
-#Solve
+# Função Objetivo
+max_profit += objective
+
+for toy in range(toys):
+    max_profit += max_capacity[toy] <= capacity[toy]
+
+# Restrição para a capacidade total disponível
+max_profit += all_toys <= max_production
+
+# Resolve o problema de otimização
+max_profit.solve(pulp.GLPK(msg=0))
+
+# # Imprime os valores das variáveis
+print(len(max_profit.constraints))
+
+# Imprime o valor da função objetivo
 print(int(pulp.value(max_profit.objective)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Create decision variables dynamically
-# variables = LpVariable.dicts("x", range(len(coefficients)), lowBound=0, cat="Integer")
-
-# # Add objective function
-# prob += lpSum([coefficients[i] * variables[i] for i in range(len(coefficients))])
-
-# # Add constraints
-# for constraint in constraints:
-#     prob += lpSum([constraint[i] * variables[i] for i in range(len(coefficients))]) <= constraint[-1]
